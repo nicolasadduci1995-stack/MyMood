@@ -420,6 +420,45 @@ html, body {
   border-bottom-color: var(--accent);
 }
 
+/* Year filter chips */
+.year-filter-wrap {
+  padding: 16px 28px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.year-filter-wrap::-webkit-scrollbar { display: none; }
+
+.year-filter-label {
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+.year-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  font-size: 12px;
+  color: var(--text2);
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.year-chip.active {
+  border-color: var(--accent);
+  background: rgba(255,107,53,0.1);
+  color: var(--accent);
+  font-weight: 500;
+}
+
 .cards-section {
   padding: 20px 28px 0;
 }
@@ -728,6 +767,13 @@ html, body {
       <button class="res-tab" onclick="filterTab('movie', this)">Películas</button>
       <button class="res-tab" onclick="filterTab('tv', this)">Series</button>
     </div>
+    <div class="year-filter-wrap">
+      <span class="year-filter-label">Época:</span>
+      <button class="year-chip active" onclick="setYearFilter('all', this)">Todas</button>
+      <button class="year-chip" onclick="setYearFilter('recent', this)">Últimos 5 años</button>
+      <button class="year-chip" onclick="setYearFilter('2010s', this)">2010-2019</button>
+      <button class="year-chip" onclick="setYearFilter('classic', this)">Clásicos (-2010)</button>
+    </div>
     <div id="cards-container" class="cards-section"></div>
     <div class="results-footer">
       <button class="btn-regen" onclick="regenerate()">↺ Otras recomendaciones</button>
@@ -795,6 +841,7 @@ const answers = {};
 let allRecs = [];
 let currentTab = 'all';
 let moodData = null;
+let currentYearFilter = 'all';
 
 function goTo(screen) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1010,10 +1057,26 @@ function buildContentInstructions(mood) {
   return parts.length > 0 ? `Considerá además: ${parts.join('; ')}.` : '';
 }
 
+// ── Instrucciones de año según filtro ──────────────────────────────────
+function buildYearInstructions() {
+  const currentYear = new Date().getFullYear();
+  switch(currentYearFilter) {
+    case 'recent':
+      return `\nIMPORTANTE: recomendá SOLO títulos estrenados entre ${currentYear - 5} y ${currentYear}.`;
+    case '2010s':
+      return `\nIMPORTANTE: recomendá SOLO títulos estrenados entre 2010 y 2019.`;
+    case 'classic':
+      return `\nIMPORTANTE: recomendá SOLO títulos estrenados antes del 2010, clásicos reconocidos.`;
+    default:
+      return '';
+  }
+}
+
 // ── FETCH CON MOOD PRE-DETECTADO ───────────────────────────────────────
 async function fetchRecommendations(isRegen = false) {
   const mood = detectMood();
   const contentInstructions = buildContentInstructions(mood);
+  const yearInstructions = buildYearInstructions();
 
   const prevTitles = isRegen && allRecs.length
     ? `\nNO repitas estos títulos ya recomendados: ${allRecs.map(r => r.title).join(', ')}.`
@@ -1024,7 +1087,7 @@ async function fetchRecommendations(isRegen = false) {
 MOOD: "${mood.nombre}"
 DESCRIPCIÓN: ${mood.desc}
 TAGS: ${mood.tags.join(', ')}
-${contentInstructions}${prevTitles}
+${contentInstructions}${yearInstructions}${prevTitles}
 
 Tu tarea: recomendar exactamente 3 películas y 3 series que encajen perfectamente con este mood.
 Las recomendaciones deben ser diversas entre sí (no 3 del mismo género/tono) para maximizar las chances de que el usuario elija una en el primer intento.
@@ -1054,7 +1117,7 @@ Usá títulos reales, conocidos y disponibles en plataformas de streaming. El t�
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -1244,6 +1307,25 @@ function filterTab(tab, el) {
   });
 }
 
+async function setYearFilter(filter, el) {
+  if (currentYearFilter === filter) return; // ya está activo, no recargar
+  currentYearFilter = filter;
+  document.querySelectorAll('.year-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+
+  // Re-consultar a Claude con el nuevo filtro de época
+  goTo('loading');
+  try {
+    await fetchRecommendations(false);
+  } catch(e) {
+    goTo('results');
+    document.getElementById('cards-container').innerHTML = `
+      <div class="error-msg" style="margin: 20px 0;">
+        ⚠️ ${e.message || 'Error al filtrar por época'}. Intentá de nuevo.
+      </div>`;
+  }
+}
+
 async function regenerate() {
   goTo('loading');
   try {
@@ -1261,6 +1343,8 @@ function restart() {
   allRecs = [];
   moodData = null;
   currentTab = 'all';
+  currentYearFilter = 'all';
+  document.querySelectorAll('.year-chip').forEach((c,i) => c.classList.toggle('active', i===0));
   renderQuestion();
   goTo('splash');
 }
