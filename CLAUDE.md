@@ -22,6 +22,7 @@ App que recomienda películas y series según el estado de ánimo del día. El u
 /
 ├── index.html      App completa (HTML + CSS + JS en un solo archivo)
 ├── api/claude.js   Proxy serverless (Node) hacia la API de Anthropic
+├── api/tmdb.js     Proxy serverless (Node) hacia TMDb (agrega TMDB_API_KEY)
 ├── vercel.json     Config de Vercel (builds + routes explícitos)
 └── README.md
 ```
@@ -61,7 +62,7 @@ App que recomienda películas y series según el estado de ánimo del día. El u
 
 Ordenados por prioridad:
 
-1. **Key de TMDb es un placeholder** (`TMDB_KEY` en index.html). Sin una key real no hay posters, ratings ni plataformas. Nicolas la saca gratis en themoviedb.org.
+1. **Key de TMDb**: ya vive en el servidor (`api/tmdb.js`). Falta cargar `TMDB_API_KEY` en Vercel (se saca gratis en themoviedb.org).
 2. **Mapa de moods incompleto.** Probadas las 1.024 combinaciones: ~33% cae en "Noche tranquila en casa" y 38 de 64 combinaciones P1×P2×P3 no tienen mapeo propio (caen al fallback). "Familia" fuerza ~25% de los casos a "Para todos". Hay que completar el mapa con una regla para todas las combinaciones y reducir el peso del override de familia.
 3. **Proxy abierto.** `api/claude.js` tiene CORS `*` y acepta cualquier modelo y `max_tokens` del cliente: cualquiera con la URL puede gastar el saldo. Fijar modelo y `max_tokens` en el servidor, validar largo del prompt y agregar límite por IP.
 4. **Falta atribución a TMDb.** Es obligatoria: mostrar en una sección "Acerca de/Créditos": "This product uses the TMDb API but is not endorsed or certified by TMDb."
@@ -78,7 +79,7 @@ Ordenados por prioridad:
 - [ ] Poner key real de TMDb
 - [ ] Completar mapa de moods
 - [ ] Blindar el proxy
-- [ ] Agregar atribución a TMDb
+- [x] Agregar atribución a TMDb
 - [ ] Testear con 5-10 personas (amigos y familia): medir elección en primer set vs regeneración
 - [ ] Corregir los detalles de UX listados arriba
 - [ ] Convertir en PWA antes de ir a stores (validar retención primero)
@@ -88,7 +89,7 @@ Ordenados por prioridad:
 ## Cómo desplegar
 
 1. Hacer commit a `main` en GitHub. Vercel redeploya en 1-2 minutos.
-2. Variable de entorno requerida en Vercel: `ANTHROPIC_API_KEY`.
+2. Variables de entorno requeridas en Vercel: `ANTHROPIC_API_KEY` y `TMDB_API_KEY`.
 3. Probar SIEMPRE desde https://my-mood-chi.vercel.app, no abriendo `index.html` como archivo local (ahí `/api/claude` no existe y da 404).
 4. Si el proxy devuelve 404: verificar que `api/claude.js` esté dentro de la carpeta `api` y que `vercel.json` no esté roto.
 
