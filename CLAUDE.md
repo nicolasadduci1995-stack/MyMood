@@ -62,10 +62,10 @@ App que recomienda películas y series según el estado de ánimo del día. El u
 
 Ordenados por prioridad:
 
-1. **Key de TMDb**: ya vive en el servidor (`api/tmdb.js`). Falta cargar `TMDB_API_KEY` en Vercel (se saca gratis en themoviedb.org).
+1. ~~Key de TMDb~~ ✅ Resuelto: vive en el servidor (`api/tmdb.js`) con `TMDB_API_KEY` en Vercel (ojo: el nombre distingue mayúsculas).
 2. **Mapa de moods incompleto.** Probadas las 1.024 combinaciones: ~33% cae en "Noche tranquila en casa" y 38 de 64 combinaciones P1×P2×P3 no tienen mapeo propio (caen al fallback). "Familia" fuerza ~25% de los casos a "Para todos". Hay que completar el mapa con una regla para todas las combinaciones y reducir el peso del override de familia.
-3. **Proxy abierto.** `api/claude.js` tiene CORS `*` y acepta cualquier modelo y `max_tokens` del cliente: cualquiera con la URL puede gastar el saldo. Fijar modelo y `max_tokens` en el servidor, validar largo del prompt y agregar límite por IP.
-4. **Falta atribución a TMDb.** Es obligatoria: mostrar en una sección "Acerca de/Créditos": "This product uses the TMDb API but is not endorsed or certified by TMDb."
+3. ~~Proxy abierto~~ ✅ Resuelto: `api/claude.js` fija modelo y `max_tokens`, solo acepta pedidos desde la app (my-mood-chi.vercel.app y previews), valida largo del prompt (6.000 caracteres) y limita a 30 consultas/hora por IP (en memoria, se reinicia con la función).
+4. ~~Atribución a TMDb~~ ✅ Resuelto: está en el pie de los resultados.
 5. **UX:** "Ver ahora" abre la ficha de TMDb, no la plataforma. "Ya tengo cuenta" no hace nada. "Saltar" deja avanzar sin responder y el mood sale del fallback.
 6. **Créditos de Anthropic.** La API es de pago, independiente de la suscripción a Claude.ai. Si el error dice "credit balance is too low", hay que cargar saldo en console.anthropic.com (USD 5 alcanzan para miles de consultas con Haiku).
 
@@ -76,9 +76,9 @@ Ordenados por prioridad:
 
 ## Pendientes
 
-- [ ] Poner key real de TMDb
+- [x] Poner key real de TMDb
 - [ ] Completar mapa de moods
-- [ ] Blindar el proxy
+- [x] Blindar el proxy
 - [x] Agregar atribución a TMDb
 - [ ] Testear con 5-10 personas (amigos y familia): medir elección en primer set vs regeneración
 - [ ] Corregir los detalles de UX listados arriba
@@ -91,7 +91,8 @@ Ordenados por prioridad:
 1. Hacer commit a `main` en GitHub. Vercel redeploya en 1-2 minutos.
 2. Variables de entorno requeridas en Vercel: `ANTHROPIC_API_KEY` y `TMDB_API_KEY`.
 3. Probar SIEMPRE desde https://my-mood-chi.vercel.app, no abriendo `index.html` como archivo local (ahí `/api/claude` no existe y da 404).
-4. Si el proxy devuelve 404: verificar que `api/claude.js` esté dentro de la carpeta `api` y que `vercel.json` no esté roto.
+4. Si se cambia el dominio de la app, actualizar `ALLOWED_ORIGINS` en `api/claude.js` (si no, el proxy responde 403).
+5. Si el proxy devuelve 404: verificar que `api/claude.js` esté dentro de la carpeta `api` y que `vercel.json` no esté roto.
 
 ## Identidad visual
 
