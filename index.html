@@ -937,6 +937,57 @@ async function startAnalysis() {
 }
 
 // ── MOOD DETECTION ENGINE ──────────────────────────────────────────────
+// Catálogo de moods. "contenido" es una pista extra de género/tono para Claude.
+const MOODS = {
+  reir_sin_pensar:  { nombre:'Reírme sin pensar',        desc:'Comedia liviana para subir el ánimo sin gastar energía.',          tags:['Comedia','Liviano','Levanta el ánimo'] },
+  buena_onda:       { nombre:'Buena onda nomás',         desc:'Comedia con corazón para una noche sin complicaciones.',           tags:['Comedia','Accesible','Disfrutable'] },
+  humor_ingenio:    { nombre:'Humor con ingenio',        desc:'Reírte con algo inteligente: sátira, comedia con vuelta y diálogos filosos.', tags:['Comedia inteligente','Ingenioso','Con vuelta'], contenido:'comedia inteligente, sátira, humor negro o comedia de autor' },
+  sacudir_bajon:    { nombre:'Sacudirme el bajón',       desc:'Comedia que corte el loop mental sin pedir nada a cambio.',        tags:['Comedia','Levanta el ánimo','Ligero'] },
+  llorar_sin_culpa: { nombre:'Llorar sin culpa',         desc:'Emocionarte profundo sin tener que pensar demasiado.',             tags:['Emotivo','Cálido','Fácil de seguir'] },
+  sentir_lindo:     { nombre:'Sentir algo lindo',        desc:'Emocionarte desde la calma, sin que te rompa.',                    tags:['Emotivo','Íntimo','Cálido'] },
+  procesar:         { nombre:'Procesar en silencio',     desc:'Historias que acompañan lo que está dando vueltas adentro.',       tags:['Introspectivo','Emotivo','Reflexivo'] },
+  bajar_al_fondo:   { nombre:'Bajar al fondo',           desc:'Cine de autor y dramas existenciales para procesar en profundidad.', tags:['Introspectivo','Denso','Cine de autor'], contenido:'drama existencial, cine de autor' },
+  contemplar:       { nombre:'Contemplar y flotar',      desc:'Disfrutar lo estético, sin urgencia ni presión narrativa.',        tags:['Visual','Estético','Inmersivo'] },
+  explotar_cabeza:  { nombre:'Que me explote la cabeza', desc:'Narrativas complejas que desafíen cada suposición.',                tags:['Complejo','Desafiante','Memorable'] },
+  despertame:       { nombre:'Despertame de a poco',     desc:'Acción accesible para sacudir el cuerpo sin exigir el cerebro.',   tags:['Acción ligera','Entretenido','Fácil de seguir'], contenido:'acción accesible, comedia de acción' },
+  quiero_accion:    { nombre:'Quiero acción ya',         desc:'Algo que te enganche sin que tengas que reconstruir el mundo.',    tags:['Acción','Entretenido','Ágil'] },
+  modo_fuga:        { nombre:'Modo fuga total',          desc:'Escapar completamente con adrenalina y tensión máxima.',           tags:['Acción','Intenso','Adrenalina'] },
+  epico:            { nombre:'Épico y emocionante',      desc:'Grandes historias y espectáculo visual para vivirlo a pleno.',     tags:['Épico','Espectacular','Emocionante'], contenido:'grandes producciones, épica, aventura con impacto visual' },
+  modo_auto:        { nombre:'Modo automático',          desc:'Algo que entre solo sin pedirte nada a cambio.',                   tags:['Relajante','Sin esfuerzo','Fácil de seguir'] },
+  noche_casa:       { nombre:'Noche tranquila en casa',  desc:'Descansar la mente con algo cálido y sin sobresaltos.',            tags:['Relajante','Cálido','Contemplativo'] },
+  activo_sin_drama: { nombre:'Activo pero sin drama',    desc:'Ágil, divertido, que fluya sin pesar.',                            tags:['Comedia ágil','Ligero','Entretenido'], contenido:'comedia ágil, documental entretenido' },
+  miedo_solo:       { nombre:'Modo miedo en soledad',    desc:'Horror sin filtros, solo vos y la oscuridad.',                     tags:['Psicológico','Intenso','Sin red'], contenido:'horror psicológico' },
+};
+
+// Mapa completo energía × necesidad × esfuerzo. Orden de esfuerzo: [cero, algo, full, visual]
+const ESFUERZOS = ['cero', 'algo', 'full', 'visual'];
+const MOOD_MAP = {
+  agotado: {
+    reir:        ['reir_sin_pensar', 'reir_sin_pensar', 'humor_ingenio', 'reir_sin_pensar'],
+    emocion:     ['llorar_sin_culpa', 'llorar_sin_culpa', 'llorar_sin_culpa', 'contemplar'],
+    adrenalina:  ['despertame', 'despertame', 'despertame', 'despertame'],
+    desconectar: ['modo_auto', 'modo_auto', 'modo_auto', 'contemplar'],
+  },
+  tranquilo: {
+    reir:        ['buena_onda', 'buena_onda', 'humor_ingenio', 'buena_onda'],
+    emocion:     ['sentir_lindo', 'sentir_lindo', 'sentir_lindo', 'contemplar'],
+    adrenalina:  ['quiero_accion', 'quiero_accion', 'explotar_cabeza', 'quiero_accion'],
+    desconectar: ['noche_casa', 'noche_casa', 'noche_casa', 'contemplar'],
+  },
+  acelerado: {
+    reir:        ['buena_onda', 'buena_onda', 'humor_ingenio', 'buena_onda'],
+    emocion:     ['sentir_lindo', 'sentir_lindo', 'explotar_cabeza', 'epico'],
+    adrenalina:  ['quiero_accion', 'quiero_accion', 'modo_fuga', 'epico'],
+    desconectar: ['activo_sin_drama', 'activo_sin_drama', 'activo_sin_drama', 'activo_sin_drama'],
+  },
+  nostalgico: {
+    reir:        ['sacudir_bajon', 'sacudir_bajon', 'humor_ingenio', 'sacudir_bajon'],
+    emocion:     ['llorar_sin_culpa', 'procesar', 'bajar_al_fondo', 'contemplar'],
+    adrenalina:  ['quiero_accion', 'quiero_accion', 'explotar_cabeza', 'quiero_accion'],
+    desconectar: ['noche_casa', 'noche_casa', 'bajar_al_fondo', 'contemplar'],
+  },
+};
+
 function detectMood() {
   const energia   = answers[0]; // agotado | tranquilo | acelerado | nostalgico
   const necesidad = answers[1]; // reir | emocion | adrenalina | desconectar
@@ -944,100 +995,25 @@ function detectMood() {
   const universo  = answers[3]; // real | fantasia | terror | documental
   const compania  = answers[4]; // solo | pareja | amigos | familia
 
-  // ── Overrides especiales (tienen prioridad) ──────────────────────────
-  if (compania === 'familia') {
-    return {
-      id: 'para_todos',
-      nombre: 'Para todos en casa',
-      desc: 'Una noche donde todos disfrutan por igual.',
-      tags: ['Apto todo público', 'Cálido', 'Sin drama adulto'],
-      filtros: { contenido: 'familiar', universo, compania, esfuerzo: 'cero' }
-    };
+  let id;
+  // Único caso especial: terror + solo + adrenalina
+  if (universo === 'terror' && compania === 'solo' && necesidad === 'adrenalina') {
+    id = 'miedo_solo';
+  } else {
+    id = MOOD_MAP[energia]?.[necesidad]?.[ESFUERZOS.indexOf(esfuerzo)];
   }
-  if (universo === 'terror' && compania === 'solo') {
-    return {
-      id: 'miedo_solo',
-      nombre: 'Modo miedo en soledad',
-      desc: 'Horror sin filtros, solo vos y la oscuridad.',
-      tags: ['Psicológico', 'Intenso', 'Sin red'],
-      filtros: { contenido: 'horror psicológico', universo, esfuerzo, compania: 'solo' }
-    };
-  }
-  if (energia === 'agotado' && necesidad === 'adrenalina') {
-    return {
-      id: 'despertame',
-      nombre: 'Despertame de a poco',
-      desc: 'Acción accesible para sacudir el cuerpo sin exigir el cerebro.',
-      tags: ['Acción ligera', 'Entretenido', 'Fácil de seguir'],
-      filtros: { contenido: 'acción accesible comedia de acción', universo, esfuerzo: 'cero', compania }
-    };
-  }
-  if (energia === 'nostalgico' && esfuerzo === 'full') {
-    return {
-      id: 'bajar_al_fondo',
-      nombre: 'Bajar al fondo',
-      desc: 'Cine de autor y dramas existenciales para procesar en profundidad.',
-      tags: ['Introspectivo', 'Denso', 'Cine de autor'],
-      filtros: { contenido: 'drama existencial cine de autor arthouse', universo, esfuerzo: 'full', compania }
-    };
-  }
-  if (energia === 'acelerado' && necesidad === 'desconectar') {
-    return {
-      id: 'activo_sin_drama',
-      nombre: 'Activo pero sin drama',
-      desc: 'Ágil, divertido, que fluya sin pesar.',
-      tags: ['Comedia ágil', 'Ligero', 'Entretenido'],
-      filtros: { contenido: 'comedia ágil documental entretenido', universo, esfuerzo: 'algo', compania }
-    };
-  }
+  // Respaldo solo si faltan respuestas (por ejemplo, si el usuario tocó "Saltar")
+  if (!id) id = 'noche_casa';
 
-  // ── Moods core: P1 × P2 × P3 ────────────────────────────────────────
-  const key = `${energia}__${necesidad}__${esfuerzo}`;
-  const moodMap = {
-    'agotado__desconectar__cero':    { id:'modo_auto',      nombre:'Modo automático',          desc:'Algo que entre solo sin pedirte nada a cambio.',             tags:['Relajante','Sin esfuerzo','Fácil de seguir'] },
-    'agotado__desconectar__algo':    { id:'modo_auto',      nombre:'Modo automático',          desc:'Algo que entre solo sin pedirte nada a cambio.',             tags:['Relajante','Sin esfuerzo','Fácil de seguir'] },
-    'agotado__emocion__cero':        { id:'llorar_sin_culpa', nombre:'Llorar sin culpa',       desc:'Emocionarte profundo sin tener que pensar demasiado.',       tags:['Emotivo','Cálido','Fácil de seguir'] },
-    'agotado__emocion__algo':        { id:'llorar_sin_culpa', nombre:'Llorar sin culpa',       desc:'Emocionarte profundo sin tener que pensar demasiado.',       tags:['Emotivo','Cálido','Fácil de seguir'] },
-    'agotado__reir__cero':           { id:'reir_sin_pensar', nombre:'Reírme sin pensar',       desc:'Comedia liviana para subir el ánimo sin gastar energía.',    tags:['Comedia','Liviano','Levanta el ánimo'] },
-    'agotado__reir__algo':           { id:'reir_sin_pensar', nombre:'Reírme sin pensar',       desc:'Comedia liviana para subir el ánimo sin gastar energía.',    tags:['Comedia','Liviano','Levanta el ánimo'] },
-    'agotado__adrenalina__full':     { id:'despertame',     nombre:'Despertame de a poco',     desc:'Acción accesible para sacudir el cuerpo sin exigir el cerebro.', tags:['Acción ligera','Entretenido','Fácil'] },
-    'tranquilo__desconectar__cero':  { id:'noche_casa',     nombre:'Noche tranquila en casa',  desc:'Descansar la mente con algo cálido y sin sobresaltos.',      tags:['Relajante','Cálido','Contemplativo'] },
-    'tranquilo__desconectar__algo':  { id:'noche_casa',     nombre:'Noche tranquila en casa',  desc:'Descansar la mente con algo cálido y sin sobresaltos.',      tags:['Relajante','Cálido','Contemplativo'] },
-    'tranquilo__desconectar__visual':{ id:'contemplar',     nombre:'Contemplar y flotar',      desc:'Disfrutar lo estético, sin urgencia ni presión narrativa.',   tags:['Visual','Estético','Inmersivo'] },
-    'tranquilo__emocion__algo':      { id:'sentir_lindo',   nombre:'Sentir algo lindo',        desc:'Emocionarte desde la calma, sin que te rompa.',              tags:['Emotivo','Íntimo','Cálido'] },
-    'tranquilo__emocion__full':      { id:'sentir_lindo',   nombre:'Sentir algo lindo',        desc:'Emocionarte desde la calma, sin que te rompa.',              tags:['Emotivo','Íntimo','Cálido'] },
-    'tranquilo__reir__algo':         { id:'buena_onda',     nombre:'Buena onda nomás',         desc:'Comedia con corazón para una noche sin complicaciones.',     tags:['Comedia','Accesible','Disfrutable'] },
-    'tranquilo__reir__cero':         { id:'buena_onda',     nombre:'Buena onda nomás',         desc:'Comedia con corazón para una noche sin complicaciones.',     tags:['Comedia','Accesible','Disfrutable'] },
-    'tranquilo__adrenalina__algo':   { id:'quiero_accion',  nombre:'Quiero acción ya',         desc:'Algo que te enganche sin que tengas que reconstruir el mundo.', tags:['Acción','Entretenido','Ágil'] },
-    'acelerado__adrenalina__full':   { id:'modo_fuga',      nombre:'Modo fuga total',          desc:'Escapar completamente con adrenalina y tensión máxima.',     tags:['Acción','Intenso','Adrenalina'] },
-    'acelerado__adrenalina__algo':   { id:'quiero_accion',  nombre:'Quiero acción ya',         desc:'Algo que te enganche sin que tengas que reconstruir el mundo.', tags:['Acción','Entretenido','Ágil'] },
-    'acelerado__reir__algo':         { id:'buena_onda',     nombre:'Buena onda nomás',         desc:'Comedia con corazón para una noche sin complicaciones.',     tags:['Comedia','Accesible','Disfrutable'] },
-    'acelerado__emocion__full':      { id:'explotar_cabeza', nombre:'Que me explote la cabeza', desc:'Narrativas complejas que desafíen cada suposición.',        tags:['Complejo','Desafiante','Memorable'] },
-    'acelerado__desconectar__full':  { id:'explotar_cabeza', nombre:'Que me explote la cabeza', desc:'Narrativas complejas que desafíen cada suposición.',        tags:['Complejo','Desafiante','Memorable'] },
-    'nostalgico__emocion__algo':     { id:'procesar',       nombre:'Procesar en silencio',     desc:'Historias que acompañan lo que está dando vueltas adentro.', tags:['Introspectivo','Emotivo','Reflexivo'] },
-    'nostalgico__emocion__full':     { id:'bajar_al_fondo', nombre:'Bajar al fondo',           desc:'Cine de autor y dramas existenciales para ir a fondo.',     tags:['Introspectivo','Denso','Cine de autor'] },
-    'nostalgico__desconectar__visual':{ id:'contemplar',    nombre:'Contemplar y flotar',      desc:'Disfrutar lo estético, sin urgencia ni presión narrativa.',  tags:['Visual','Estético','Inmersivo'] },
-    'nostalgico__reir__cero':        { id:'sacudir_bajon',  nombre:'Sacudirme el bajón',       desc:'Comedia que corte el loop mental sin pedir nada a cambio.',  tags:['Comedia','Levanta el ánimo','Ligero'] },
-    'nostalgico__reir__algo':        { id:'sacudir_bajon',  nombre:'Sacudirme el bajón',       desc:'Comedia que corte el loop mental sin pedir nada a cambio.',  tags:['Comedia','Levanta el ánimo','Ligero'] },
-    'nostalgico__adrenalina__algo':  { id:'quiero_accion',  nombre:'Quiero acción ya',         desc:'Algo que te enganche y te saque de la cabeza.',             tags:['Acción','Entretenido','Ágil'] },
+  const base = MOODS[id];
+  return {
+    id,
+    nombre: base.nombre,
+    desc: base.desc,
+    tags: [...base.tags],
+    // P4 y P5 (y el esfuerzo) afinan el prompt; "familia" pide contenido apto para todos
+    filtros: { universo, compania, esfuerzo, contenido: base.contenido }
   };
-
-  // Fallback si no hay match exacto
-  const mood = moodMap[key] || {
-    id: 'noche_casa',
-    nombre: 'Noche tranquila en casa',
-    desc: 'Algo cálido y accesible para este momento.',
-    tags: ['Relajante', 'Accesible', 'Disfrutable']
-  };
-
-  // Adjuntar modificadores de P4 y P5
-  mood.filtros = {
-    universo,
-    compania,
-    esfuerzo
-  };
-
-  return mood;
 }
 
 // ── Generar instrucciones de contenido desde el mood ───────────────────

@@ -53,10 +53,14 @@ App que recomienda películas y series según el estado de ánimo del día. El u
 ### Motor de moods (`detectMood()` en index.html)
 
 - P1 × P2 × P3 definen el mood. P4 y P5 son modificadores que afinan género y tono en el prompt (`buildContentInstructions()`).
-- Overrides con prioridad: familia → "Para todos en casa"; terror+solo → "Modo miedo en soledad"; agotado+adrenalina → "Despertame de a poco"; pensativo+full → "Bajar al fondo"; acelerado+desconectar → "Activo pero sin drama".
-- Moods core: Modo automático, Llorar sin culpa, Reírme sin pensar, Noche tranquila en casa, Sentir algo lindo, Buena onda nomás, Quiero acción ya, Modo fuga total, Que me explote la cabeza, Procesar en silencio, Contemplar y flotar, Sacudirme el bajón.
+- Mapa completo (`MOOD_MAP`, desde el 17/11/2026): cada una de las 64 combinaciones P1×P2×P3 tiene un mood propio. Catálogo de moods en `MOODS` (cada uno puede tener `contenido`, una pista de género para Claude).
+- Único caso especial: terror + solo + adrenalina → "Modo miedo en soledad".
+- "Familia" ya no pisa el mood: es un modificador que pide contenido apto para todos. "Para todos en casa" dejó de existir.
+- Cuando la combinación se contradice (ej. agotado + desconectar + full), manda la energía.
+- 18 moods: Reírme sin pensar, Buena onda nomás, Humor con ingenio, Sacudirme el bajón, Llorar sin culpa, Sentir algo lindo, Procesar en silencio, Bajar al fondo, Contemplar y flotar, Que me explote la cabeza, Despertame de a poco, Quiero acción ya, Modo fuga total, Épico y emocionante, Modo automático, Noche tranquila en casa, Activo pero sin drama, Modo miedo en soledad.
+- Distribución sobre las 1.024 combinaciones: ninguno supera el 12% (antes "Noche tranquila" ~33% y "Para todos" ~25%). El respaldo ("Noche tranquila") solo aparece si faltan respuestas (botón "Saltar").
 - Claude recibe el mood ya detectado, no las respuestas crudas. Se le pide diversidad dentro del mood (para que al menos una opción pegue). En regeneración se le pasan los títulos previos para no repetir.
-- Cada override pasa a Claude universo, compañía, esfuerzo y su `contenido` propio (arreglado el 17/11/2026: antes "Para todos en casa" perdía el pedido de apto familiar y "Modo miedo en soledad" perdía el terror).
+- Cada mood pasa a Claude universo, compañía, esfuerzo y su `contenido` propio.
 - Filtro de época: chips Todas / Últimos 5 años / 2010-2019 / Clásicos. Cambiar el chip re-consulta a Claude con la restricción de años dentro del prompt (`buildYearInstructions()`).
 
 ## Problemas conocidos (diagnóstico del 17/11/2026)
@@ -64,7 +68,7 @@ App que recomienda películas y series según el estado de ánimo del día. El u
 Ordenados por prioridad:
 
 1. ~~Key de TMDb~~ ✅ Resuelto: vive en el servidor (`api/tmdb.js`) con `TMDB_API_KEY` en Vercel (ojo: el nombre distingue mayúsculas).
-2. **Mapa de moods incompleto.** Probadas las 1.024 combinaciones: ~33% cae en "Noche tranquila en casa" y 38 de 64 combinaciones P1×P2×P3 no tienen mapeo propio (caen al fallback). "Familia" fuerza ~25% de los casos a "Para todos". Hay que completar el mapa con una regla para todas las combinaciones y reducir el peso del override de familia.
+2. ~~Mapa de moods incompleto~~ ✅ Resuelto el 17/11/2026: mapa completo de 64 combinaciones, familia como modificador.
 3. ~~Proxy abierto~~ ✅ Resuelto: `api/claude.js` fija modelo y `max_tokens`, solo acepta pedidos desde la app (my-mood-chi.vercel.app y previews), valida largo del prompt (6.000 caracteres) y limita a 30 consultas/hora por IP (en memoria, se reinicia con la función).
 4. ~~Atribución a TMDb~~ ✅ Resuelto: está en el pie de los resultados.
 5. **UX:** "Ver ahora" abre la ficha de TMDb, no la plataforma (ya no se rompe con títulos con apóstrofe). "Reintentar" ya repite la consulta sin borrar las respuestas. "Ya tengo cuenta" no hace nada. "Saltar" deja avanzar sin responder y el mood sale del fallback.
@@ -78,7 +82,7 @@ Ordenados por prioridad:
 ## Pendientes
 
 - [x] Poner key real de TMDb
-- [ ] Completar mapa de moods
+- [x] Completar mapa de moods
 - [x] Blindar el proxy
 - [x] Agregar atribución a TMDb
 - [ ] Testear con 5-10 personas (amigos y familia): medir elección en primer set vs regeneración
