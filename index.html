@@ -929,7 +929,7 @@ async function startAnalysis() {
       <div class="error-msg" style="margin: 20px 0;">
         ⚠️ ${e.message || 'Error desconocido'}. Revisá tu conexión o la API key e intentá de nuevo.
         <br><br>
-        <button onclick="restart()" style="background:#FF6B35;color:white;border:none;padding:10px 20px;border-radius:12px;cursor:pointer;font-size:14px;">Reintentar</button>
+        <button onclick="startAnalysis()" style="background:#FF6B35;color:white;border:none;padding:10px 20px;border-radius:12px;cursor:pointer;font-size:14px;">Reintentar</button>
       </div>`;
   } finally {
     clearInterval(interval);
@@ -951,7 +951,7 @@ function detectMood() {
       nombre: 'Para todos en casa',
       desc: 'Una noche donde todos disfrutan por igual.',
       tags: ['Apto todo público', 'Cálido', 'Sin drama adulto'],
-      filtros: { contenido: 'familiar', universo, esfuerzo: 'cero' }
+      filtros: { contenido: 'familiar', universo, compania, esfuerzo: 'cero' }
     };
   }
   if (universo === 'terror' && compania === 'solo') {
@@ -960,7 +960,7 @@ function detectMood() {
       nombre: 'Modo miedo en soledad',
       desc: 'Horror sin filtros, solo vos y la oscuridad.',
       tags: ['Psicológico', 'Intenso', 'Sin red'],
-      filtros: { contenido: 'horror psicológico', esfuerzo, compania: 'solo' }
+      filtros: { contenido: 'horror psicológico', universo, esfuerzo, compania: 'solo' }
     };
   }
   if (energia === 'agotado' && necesidad === 'adrenalina') {
@@ -969,7 +969,7 @@ function detectMood() {
       nombre: 'Despertame de a poco',
       desc: 'Acción accesible para sacudir el cuerpo sin exigir el cerebro.',
       tags: ['Acción ligera', 'Entretenido', 'Fácil de seguir'],
-      filtros: { contenido: 'acción accesible comedia de acción', esfuerzo: 'cero', compania }
+      filtros: { contenido: 'acción accesible comedia de acción', universo, esfuerzo: 'cero', compania }
     };
   }
   if (energia === 'nostalgico' && esfuerzo === 'full') {
@@ -978,7 +978,7 @@ function detectMood() {
       nombre: 'Bajar al fondo',
       desc: 'Cine de autor y dramas existenciales para procesar en profundidad.',
       tags: ['Introspectivo', 'Denso', 'Cine de autor'],
-      filtros: { contenido: 'drama existencial cine de autor arthouse', esfuerzo: 'full', compania }
+      filtros: { contenido: 'drama existencial cine de autor arthouse', universo, esfuerzo: 'full', compania }
     };
   }
   if (energia === 'acelerado' && necesidad === 'desconectar') {
@@ -987,7 +987,7 @@ function detectMood() {
       nombre: 'Activo pero sin drama',
       desc: 'Ágil, divertido, que fluya sin pesar.',
       tags: ['Comedia ágil', 'Ligero', 'Entretenido'],
-      filtros: { contenido: 'comedia ágil documental entretenido', esfuerzo: 'algo', compania }
+      filtros: { contenido: 'comedia ágil documental entretenido', universo, esfuerzo: 'algo', compania }
     };
   }
 
@@ -1042,8 +1042,10 @@ function detectMood() {
 
 // ── Generar instrucciones de contenido desde el mood ───────────────────
 function buildContentInstructions(mood) {
-  const { universo, compania, esfuerzo } = mood.filtros || {};
+  const { universo, compania, esfuerzo, contenido } = mood.filtros || {};
   const parts = [];
+
+  if (contenido) parts.push(`tipo de contenido: ${contenido}`);
 
   if (universo === 'fantasia') parts.push('universo de fantasía o ciencia ficción');
   if (universo === 'real')     parts.push('ambientado en el mundo real, historias cotidianas o contemporáneas');
@@ -1205,7 +1207,7 @@ function renderCards(recs) {
         <div class="platform-badges" id="platforms-${globalIdx}">
           <div class="platform-badge loading-badge skeleton" style="width:70px;height:24px;"></div>
         </div>
-        <button class="btn-watch" onclick="watchThis('${rec.title}', ${globalIdx})">Ver ahora ↗</button>
+        <button class="btn-watch" onclick="watchThis(${globalIdx})">Ver ahora ↗</button>
       </div>
     </div>`;
   }).join('');
@@ -1289,8 +1291,9 @@ async function fetchTMDb(rec, idx) {
   }
 }
 
-function watchThis(title, idx) {
+function watchThis(idx) {
   const rec = allRecs[idx];
+  const title = rec?.title || '';
   if (rec?.tmdbLink) {
     window.open(rec.tmdbLink, '_blank');
   } else {

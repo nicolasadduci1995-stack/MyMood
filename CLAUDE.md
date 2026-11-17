@@ -56,6 +56,7 @@ App que recomienda películas y series según el estado de ánimo del día. El u
 - Overrides con prioridad: familia → "Para todos en casa"; terror+solo → "Modo miedo en soledad"; agotado+adrenalina → "Despertame de a poco"; pensativo+full → "Bajar al fondo"; acelerado+desconectar → "Activo pero sin drama".
 - Moods core: Modo automático, Llorar sin culpa, Reírme sin pensar, Noche tranquila en casa, Sentir algo lindo, Buena onda nomás, Quiero acción ya, Modo fuga total, Que me explote la cabeza, Procesar en silencio, Contemplar y flotar, Sacudirme el bajón.
 - Claude recibe el mood ya detectado, no las respuestas crudas. Se le pide diversidad dentro del mood (para que al menos una opción pegue). En regeneración se le pasan los títulos previos para no repetir.
+- Cada override pasa a Claude universo, compañía, esfuerzo y su `contenido` propio (arreglado el 17/11/2026: antes "Para todos en casa" perdía el pedido de apto familiar y "Modo miedo en soledad" perdía el terror).
 - Filtro de época: chips Todas / Últimos 5 años / 2010-2019 / Clásicos. Cambiar el chip re-consulta a Claude con la restricción de años dentro del prompt (`buildYearInstructions()`).
 
 ## Problemas conocidos (diagnóstico del 17/11/2026)
@@ -66,7 +67,7 @@ Ordenados por prioridad:
 2. **Mapa de moods incompleto.** Probadas las 1.024 combinaciones: ~33% cae en "Noche tranquila en casa" y 38 de 64 combinaciones P1×P2×P3 no tienen mapeo propio (caen al fallback). "Familia" fuerza ~25% de los casos a "Para todos". Hay que completar el mapa con una regla para todas las combinaciones y reducir el peso del override de familia.
 3. ~~Proxy abierto~~ ✅ Resuelto: `api/claude.js` fija modelo y `max_tokens`, solo acepta pedidos desde la app (my-mood-chi.vercel.app y previews), valida largo del prompt (6.000 caracteres) y limita a 30 consultas/hora por IP (en memoria, se reinicia con la función).
 4. ~~Atribución a TMDb~~ ✅ Resuelto: está en el pie de los resultados.
-5. **UX:** "Ver ahora" abre la ficha de TMDb, no la plataforma. "Ya tengo cuenta" no hace nada. "Saltar" deja avanzar sin responder y el mood sale del fallback.
+5. **UX:** "Ver ahora" abre la ficha de TMDb, no la plataforma (ya no se rompe con títulos con apóstrofe). "Reintentar" ya repite la consulta sin borrar las respuestas. "Ya tengo cuenta" no hace nada. "Saltar" deja avanzar sin responder y el mood sale del fallback.
 6. **Créditos de Anthropic.** La API es de pago, independiente de la suscripción a Claude.ai. Si el error dice "credit balance is too low", hay que cargar saldo en console.anthropic.com (USD 5 alcanzan para miles de consultas con Haiku).
 
 ## Licencia de TMDb
@@ -85,6 +86,27 @@ Ordenados por prioridad:
 - [ ] Convertir en PWA antes de ir a stores (validar retención primero)
 - [ ] App móvil (React Native + Expo), reutilizando mood engine, prompt e integración TMDb
 - [ ] Idea futura: sección de bares/restaurantes según antojo (mismo motor, Google Places API). Falta decidir si es sección de MyMood o app separada.
+
+## Ideas futuras (anotadas el 17/11/2026)
+
+### Perfil de usuario (aprobada como próximo gran paso, después de testear con 5-10 personas)
+- Login con Google o Apple. Le da sentido al botón "Ya tengo cuenta".
+- La app arma un perfil con las consultas: ej. "Nicolas, sos más de acción y comedia, a veces drama, y solés ver solo".
+- El perfil se usa para afinar el prompt de Claude (mejora la métrica de elegir en el primer set) y para retención.
+- Visualización del perfil: referencias en `docs/referencias/`:
+  - `perfil-anillos.png`: anillos concéntricos (estilo anillos de actividad), un anillo por género o mood.
+  - `perfil-radar.png`: gráfico de radar (telaraña), un eje por género, comparando períodos (ej. este mes vs el anterior).
+  - Hay que hacerlos más lindos que las referencias: colores de la marca (gradiente violeta → rosa → naranja → amarillo + celeste), fondo oscuro, tipografía Syne/DM Sans, animación suave al cargar.
+- Requiere: base de datos de usuarios, autenticación y política de privacidad.
+
+### Contador de personas por mood (aprobada, versión liviana de comunidad)
+- Ej.: "Ahora hay 37 personas en modo *Llorar sin culpa*".
+- Anónimo: solo números agregados, nunca quién ni dónde. Como mucho a nivel ciudad, nunca ubicación precisa.
+- Da sensación de comunidad sin riesgos. Necesita un contador en el servidor (ej. Vercel KV o similar).
+- Posible evolución: salas por película o mood para comentar en vivo, sin ubicación.
+
+### Descartada: conectar personas solas cercanas (radio 1 km)
+- Descartada por Nicolas el 17/11/2026. Motivos: riesgo de seguridad (expone gente sola en su casa, se puede triangular), carga legal (Ley 25.326, verificación de edad, moderación exigida por las stores), falta de densidad de usuarios (el mapa estaría vacío) y desvío del foco del producto.
 
 ## Cómo desplegar
 
