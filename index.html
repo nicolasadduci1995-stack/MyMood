@@ -657,6 +657,7 @@ html, body {
   }
   #screen-results { border-radius: 0 0 42px 42px; }
 }
+.tmdb-credit{font-size:10px;line-height:1.5;color:var(--text3);text-align:center;padding:16px 8px 8px;}
 </style>
 </head>
 <body>
@@ -778,14 +779,18 @@ html, body {
     <div class="results-footer">
       <button class="btn-regen" onclick="regenerate()">↺ Otras recomendaciones</button>
       <button class="btn-restart" onclick="restart()">Volver a empezar</button>
+      <p class="tmdb-credit">Este producto usa la API de TMDb pero no está avalado ni certificado por TMDb.<br>This product uses the TMDb API but is not endorsed or certified by TMDb.</p>
     </div>
   </div>
 
 </div>
 
 <script>
-const TMDB_KEY = 'eyJhbGciOiJIUzI1NiJ9'; // ← reemplazar con tu TMDb API key
-const TMDB_BASE = 'https://api.themoviedb.org/3';
+// La clave de TMDb vive en el servidor (api/tmdb.js + variable TMDB_API_KEY en Vercel)
+function tmdbUrl(path, params = {}) {
+  const qs = new URLSearchParams({ path, ...params });
+  return `/api/tmdb?${qs.toString()}`;
+}
 const COUNTRY = 'AR';
 
 const questions = [
@@ -1213,8 +1218,8 @@ async function fetchTMDb(rec, idx) {
     // Búsqueda con año primero, sin año como fallback
     let item = null;
     const searchWithYear = type === 'movie'
-      ? `${TMDB_BASE}/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(rec.title)}&year=${rec.year}&language=es-AR`
-      : `${TMDB_BASE}/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(rec.title)}&language=es-AR`;
+      ? tmdbUrl('/search/movie', { query: rec.title, year: rec.year, language: 'es-AR' })
+      : tmdbUrl('/search/tv', { query: rec.title, language: 'es-AR' });
 
     const r1 = await fetch(searchWithYear);
     const d1 = await r1.json();
@@ -1223,8 +1228,8 @@ async function fetchTMDb(rec, idx) {
     // Si no encontró con año, buscar sin año
     if (!item) {
       const searchNoYear = type === 'movie'
-        ? `${TMDB_BASE}/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(rec.title)}&language=es-AR`
-        : `${TMDB_BASE}/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(rec.title)}&language=es-AR`;
+        ? tmdbUrl('/search/movie', { query: rec.title, language: 'es-AR' })
+        : tmdbUrl('/search/tv', { query: rec.title, language: 'es-AR' });
       const r2 = await fetch(searchNoYear);
       const d2 = await r2.json();
       item = d2.results?.[0];
@@ -1252,7 +1257,7 @@ async function fetchTMDb(rec, idx) {
     }
 
     // Watch providers
-    const provRes = await fetch(`${TMDB_BASE}/${type}/${item.id}/watch/providers?api_key=${TMDB_KEY}`);
+    const provRes = await fetch(tmdbUrl(`/${type}/${item.id}/watch/providers`));
     const provData = await provRes.json();
     const arProviders = provData.results?.[COUNTRY];
     const platformsEl = document.getElementById(`platforms-${idx}`);
