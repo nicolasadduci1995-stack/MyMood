@@ -847,6 +847,7 @@ let allRecs = [];
 let currentTab = 'all';
 let moodData = null;
 let currentYearFilter = 'all';
+let recsVersion = 0; // cambia con cada set nuevo de recomendaciones
 
 function goTo(screen) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1143,6 +1144,7 @@ Usá títulos reales, conocidos y disponibles en plataformas de streaming. El t�
   const tagsEl = document.getElementById('mood-tags');
   tagsEl.innerHTML = (moodData.tags || []).map(t => `<div class="mood-tag">${t}</div>`).join('');
 
+  recsVersion++;
   allRecs = [
     ...moodData.movies.map(m => ({ ...m, type: 'movie' })),
     ...moodData.series.map(s => ({ ...s, type: 'tv' }))
@@ -1151,8 +1153,23 @@ Usá títulos reales, conocidos y disponibles en plataformas de streaming. El t�
   renderCards(allRecs);
   goTo('results');
 
-  // Fetch TMDb data para cada rec en background (sin bloquear)
-  allRecs.forEach((rec, idx) => fetchTMDb(rec, idx));
+  // Buscar datos de TMDb para cada título en segundo plano (sin bloquear)
+  const version = recsVersion;
+  allRecs.forEach((rec, idx) => fetchTMDb(rec, idx, version));
+}
+
+// Plataformas ya resueltas (o skeleton si todavía se están buscando)
+function platformsHtml(rec) {
+  if (!rec.tmdbDone) return '<div class="platform-badge loading-badge skeleton" style="width:70px;height:24px;"></div>';
+  if (!rec.platforms || rec.platforms.length === 0) return `<div class="platform-badge">${rec.platformsNote || '—'}</div>`;
+  return rec.platforms.map(n => `<div class="platform-badge">${n}</div>`).join('');
+}
+
+function posterHtml(rec) {
+  if (rec.posterPath) {
+    return `<img src="https://image.tmdb.org/t/p/w200${rec.posterPath}" alt="" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">`;
+  }
+  return rec.type === 'movie' ? '🎬' : '📺';
 }
 
 function renderCards(recs) {
@@ -1164,14 +1181,12 @@ function renderCards(recs) {
     return;
   }
 
-  container.innerHTML = filtered.map((rec, idx) => {
+  container.innerHTML = filtered.map(rec => {
     const globalIdx = allRecs.indexOf(rec);
     return `
     <div class="rec-card" id="card-${globalIdx}">
       <div class="rec-card-top">
-        <div class="rec-poster" id="poster-${globalIdx}">
-          ${rec.posterEmoji || (rec.type === 'movie' ? '🎬' : '📺')}
-        </div>
+        <div class="rec-poster" id="poster-${globalIdx}">${posterHtml(rec)}</div>
         <div class="rec-body">
           <div class="rec-type">${rec.type === 'movie' ? 'Película' : 'Serie'} · ${rec.genre}</div>
           <div class="rec-title">${rec.title}</div>
@@ -1180,90 +1195,80 @@ function renderCards(recs) {
         </div>
       </div>
       <div class="rec-card-bottom">
-        <div class="platform-badges" id="platforms-${globalIdx}">
-          <div class="platform-badge loading-badge skeleton" style="width:70px;height:24px;"></div>
-        </div>
+        <div class="platform-badges" id="platforms-${globalIdx}">${platformsHtml(rec)}</div>
         <button class="btn-watch" onclick="watchThis(${globalIdx})">Ver ahora ↗</button>
       </div>
     </div>`;
   }).join('');
 }
 
-async function fetchTMDb(rec, idx) {
+// Busca poster, rating y plataformas de un título. Guarda todo en el propio rec
+// para no volver a pedirlo al cambiar de pestaña. Si mientras tanto se cargó
+// otro set de recomendaciones (version distinta), descarta el resultado.
+async function fetchTMDb(rec, idx, version) {
+  if (rec.tmdbDone || rec.tmdbLoading) return;
+  rec.tmdbLoading = true;
+  const stale = () => version !== recsVersion;
+  const refreshCard = () => {
+    if (stale()) return;
+    const posterEl = document.getElementById(`poster-${idx}`);
+    if (posterEl) posterEl.innerHTML = posterHtml(rec);
+    const metaEl = document.querySelector(`#card-${idx} .rec-meta`);
+    if (metaEl) metaEl.textContent = `${rec.year}${rec.rating ? ' · ★ ' + rec.rating : ''}`;
+    const platformsEl = document.getElementById(`platforms-${idx}`);
+    if (platformsEl) platformsEl.innerHTML = platformsHtml(rec);
+  };
+
   try {
     const type = rec.type;
+    const searchPath = type === 'movie' ? '/search/movie' : '/search/tv';
+    const yearParam = type === 'movie' ? 'year' : 'first_air_date_year';
 
-    // Búsqueda con año primero, sin año como fallback
+    // Búsqueda con año primero, sin año como respaldo
     let item = null;
-    const searchWithYear = type === 'movie'
-      ? tmdbUrl('/search/movie', { query: rec.title, year: rec.year, language: 'es-AR' })
-      : tmdbUrl('/search/tv', { query: rec.title, language: 'es-AR' });
-
-    const r1 = await fetch(searchWithYear);
-    const d1 = await r1.json();
-    item = d1.results?.[0];
-
-    // Si no encontró con año, buscar sin año
+    if (/^\d{4}$/.test(String(rec.year))) {
+      const d1 = await (await fetch(tmdbUrl(searchPath, { query: rec.title, [yearParam]: String(rec.year), language: 'es-AR' }))).json();
+      if (stale()) return;
+      item = d1.results?.[0];
+    }
     if (!item) {
-      const searchNoYear = type === 'movie'
-        ? tmdbUrl('/search/movie', { query: rec.title, language: 'es-AR' })
-        : tmdbUrl('/search/tv', { query: rec.title, language: 'es-AR' });
-      const r2 = await fetch(searchNoYear);
-      const d2 = await r2.json();
+      const d2 = await (await fetch(tmdbUrl(searchPath, { query: rec.title, language: 'es-AR' }))).json();
+      if (stale()) return;
       item = d2.results?.[0];
     }
 
     if (!item) {
-      const platformsEl = document.getElementById(`platforms-${idx}`);
-      if (platformsEl) platformsEl.innerHTML = '<div class="platform-badge">Sin datos</div>';
-      return;
+      rec.platformsNote = 'Sin datos';
+      rec.tmdbDone = true;
+      return refreshCard();
     }
 
-    // Rating
-    if (item.vote_average) {
-      allRecs[idx].rating = item.vote_average.toFixed(1);
-      const metaEl = document.querySelector(`#card-${idx} .rec-meta`);
-      if (metaEl) metaEl.textContent = `${rec.year} · ★ ${item.vote_average.toFixed(1)}`;
-    }
+    if (item.vote_average) rec.rating = item.vote_average.toFixed(1);
+    if (item.poster_path) rec.posterPath = item.poster_path;
+    rec.tmdbId = item.id;
+    rec.tmdbLink = `https://www.themoviedb.org/${type}/${item.id}`;
+    refreshCard(); // mostrar poster y rating sin esperar las plataformas
 
-    // Poster
-    if (item.poster_path) {
-      const posterEl = document.getElementById(`poster-${idx}`);
-      if (posterEl) {
-        posterEl.innerHTML = `<img src="https://image.tmdb.org/t/p/w200${item.poster_path}" alt="${rec.title}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">`;
-      }
-    }
-
-    // Watch providers
-    const provRes = await fetch(tmdbUrl(`/${type}/${item.id}/watch/providers`));
-    const provData = await provRes.json();
+    // Plataformas en Argentina
+    const provData = await (await fetch(tmdbUrl(`/${type}/${item.id}/watch/providers`))).json();
+    if (stale()) return;
     const arProviders = provData.results?.[COUNTRY];
-    const platformsEl = document.getElementById(`platforms-${idx}`);
-    if (!platformsEl) return;
-
-    const providers = [
-      ...(arProviders?.flatrate || []),
-      ...(arProviders?.free || []),
-    ];
-
-    if (providers.length === 0) {
-      platformsEl.innerHTML = '<div class="platform-badge">No disp. en AR</div>';
-    } else {
-      const seen = new Set();
-      const badges = providers
-        .filter(p => { if (seen.has(p.provider_id)) return false; seen.add(p.provider_id); return true; })
-        .slice(0, 3)
-        .map(p => `<div class="platform-badge">${p.provider_name.replace(' Amazon Channel','').replace(' with Ads','').replace('Amazon Prime Video','Prime Video')}</div>`)
-        .join('');
-      platformsEl.innerHTML = badges;
-    }
-
-    allRecs[idx].tmdbId = item.id;
-    allRecs[idx].tmdbLink = `https://www.themoviedb.org/${type}/${item.id}`;
+    const seen = new Set();
+    rec.platforms = [...(arProviders?.flatrate || []), ...(arProviders?.free || [])]
+      .filter(p => { if (seen.has(p.provider_id)) return false; seen.add(p.provider_id); return true; })
+      .slice(0, 3)
+      .map(p => p.provider_name.replace(' Amazon Channel','').replace(' with Ads','').replace('Amazon Prime Video','Prime Video'));
+    if (rec.platforms.length === 0) rec.platformsNote = 'No disp. en AR';
+    rec.tmdbDone = true;
+    refreshCard();
 
   } catch(e) {
-    const platformsEl = document.getElementById(`platforms-${idx}`);
-    if (platformsEl) platformsEl.innerHTML = '<div class="platform-badge">—</div>';
+    if (stale()) return;
+    rec.platformsNote = '—';
+    rec.tmdbDone = true;
+    refreshCard();
+  } finally {
+    rec.tmdbLoading = false;
   }
 }
 
@@ -1281,14 +1286,8 @@ function filterTab(tab, el) {
   currentTab = tab;
   document.querySelectorAll('.res-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+  // Las tarjetas se redibujan con los datos ya guardados (poster, rating, plataformas)
   renderCards(allRecs);
-  // Re-fetch TMDb for newly rendered cards
-  allRecs.forEach((rec, idx) => {
-    const platformsEl = document.getElementById(`platforms-${idx}`);
-    if (platformsEl && platformsEl.querySelector('.skeleton')) {
-      fetchTMDb(rec, idx);
-    }
-  });
 }
 
 async function setYearFilter(filter, el) {
@@ -1325,6 +1324,7 @@ function restart() {
   currentQ = 0;
   Object.keys(answers).forEach(k => delete answers[k]);
   allRecs = [];
+  recsVersion++;
   moodData = null;
   currentTab = 'all';
   currentYearFilter = 'all';
