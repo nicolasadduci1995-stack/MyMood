@@ -35,12 +35,21 @@ App que recomienda películas y series según el estado de ánimo del día. El u
 
 ## Flujo de la app
 
-1. Splash (logo SVG cara + claqueta, wordmark MYMOOD multicolor)
-2. 5 preguntas con barra de progreso
+1. Splash: wordmark MYMOOD donde las dos O son ojos que miran y parpadean, boca que cambia de expresión, fondo que cambia de color y frase rotativa "Hoy estoy…" (desde el 25/11/2026; antes era un ícono de burbuja con claqueta)
+2. 5 preguntas con barra de progreso, acompañadas por Moodi (ver abajo)
 3. Detección de mood (local, en JS)
 4. Llamada a Claude con el mood ya resuelto
 5. Resultados con tabs Todo / Películas / Series y chips de época
 6. Por cada título: búsqueda en TMDb → poster, rating y plataformas AR (en segundo plano, con skeleton)
+
+### Moodi (avatar)
+
+- Gota de color animada (SVG generado en JS: `moodiSVG(estado)`). Elegida por Nicolas el 25/11/2026 entre tres opciones (Pochi el balde de pochoclos y Claqui la claqueta quedaron descartados).
+- Acompaña cada pregunta con una burbuja de diálogo en rioplatense: una frase de introducción y una reacción a cada respuesta (`MOODI_LINES`).
+- Estados: normal, agotado, energia, feliz, emocion, pensativo, miedo. Cada uno cambia colores (`MOODI_PALETTES`), ojos, boca y movimiento.
+- En la pantalla de carga aparece Moodi pensando (`showLoading()`).
+- Con "reducir movimiento" activado en el celular, las animaciones se apagan.
+- Uso futuro: los colores de Moodi se pueden reusar en la visualización del perfil.
 
 ### Las 5 preguntas (valores internos)
 

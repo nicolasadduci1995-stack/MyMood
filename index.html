@@ -68,15 +68,17 @@ html, body {
   position: absolute;
   top: 0; left: 50%;
   transform: translateX(-50%);
-  width: 100%; height: 60%;
-  background: radial-gradient(ellipse 320px 320px at 50% 32%, rgba(192,38,211,0.18) 0%, rgba(255,107,53,0.08) 50%, transparent 70%);
+  width: 100%; height: 70%;
+  background: radial-gradient(ellipse 300px 300px at 50% 40%, rgba(192,38,211,0.34) 0%, rgba(192,38,211,0.08) 50%, transparent 70%);
   pointer-events: none;
+  animation: splashHue 12s linear infinite;
 }
+@keyframes splashHue { to { filter: hue-rotate(360deg); } }
 
 .splash-center {
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 62%;
+  height: 64%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -84,42 +86,89 @@ html, body {
   gap: 0;
 }
 
-.splash-icon {
-  width: 130px; height: 130px;
-  margin-bottom: 24px;
-  animation: pulse 3.5s ease-in-out infinite;
-  filter: drop-shadow(0 0 24px rgba(192,38,211,0.4)) drop-shadow(0 0 48px rgba(255,107,53,0.2));
-}
-@keyframes pulse {
-  0%,100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(192,38,211,0.35)) drop-shadow(0 0 40px rgba(255,107,53,0.15)); }
-  50% { transform: scale(1.04); filter: drop-shadow(0 0 36px rgba(192,38,211,0.55)) drop-shadow(0 0 64px rgba(255,107,53,0.3)); }
-}
-
+/* Logo: las dos O de MOOD son ojos que miran y parpadean */
 .splash-logo {
   font-family: 'Syne', sans-serif;
-  font-size: clamp(28px, 9vw, 40px);
+  font-size: clamp(34px, 11vw, 46px);
   font-weight: 800;
   letter-spacing: -0.01em;
   line-height: 1;
-  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  gap: 0;
   white-space: nowrap;
 }
 .splash-logo .my { color: #EEEEE8; }
 .splash-logo .m2 { color: #FF3D8B; }
-.splash-logo .o1 { color: #FF6B35; }
-.splash-logo .o2 { color: #FFB830; }
 .splash-logo .d  { color: #38BDF8; }
+.logo-eye {
+  width: 0.78em; height: 0.78em;
+  border-radius: 50%;
+  border: 0.13em solid;
+  background: #fff;
+  display: inline-grid;
+  place-items: center;
+  margin: 0 0.02em;
+  position: relative;
+  overflow: hidden;
+}
+.logo-eye.o1 { border-color: #FF6B35; }
+.logo-eye.o2 { border-color: #FFB830; }
+.logo-pupil {
+  width: 0.3em; height: 0.3em;
+  border-radius: 50%;
+  background: #0C0C0F;
+  animation: eyeLook 8s infinite;
+}
+.logo-lid {
+  position: absolute; inset: 0;
+  background: var(--bg);
+  transform: scaleY(0);
+  transform-origin: top;
+  animation: eyeBlink 4s infinite;
+}
+@keyframes eyeLook {
+  0%,10%   { transform: translate(0,0); }
+  15%,30%  { transform: translate(-0.12em,0); }
+  35%,50%  { transform: translate(0.12em,-0.06em); }
+  55%,70%  { transform: translate(0,0.1em); }
+  75%,100% { transform: translate(0,0); }
+}
+@keyframes eyeBlink { 0%,92%,100% { transform: scaleY(0); } 95% { transform: scaleY(1); } }
+
+.splash-mouth { width: 120px; height: 34px; margin-top: 10px; }
+
+.splash-feel {
+  margin-top: 22px;
+  height: 22px;
+  width: 280px;
+  position: relative;
+  font-size: 15px;
+  color: var(--text2);
+  text-align: center;
+}
+.splash-feel span {
+  position: absolute; left: 0; right: 0;
+  opacity: 0;
+  animation: feelCycle 8s infinite;
+}
+.splash-feel span:nth-child(2) { animation-delay: 2s; }
+.splash-feel span:nth-child(3) { animation-delay: 4s; }
+.splash-feel span:nth-child(4) { animation-delay: 6s; }
+.splash-feel b { font-weight: 500; }
+@keyframes feelCycle {
+  0%       { opacity: 0; transform: translateY(6px); }
+  5%,22%   { opacity: 1; transform: none; }
+  27%,100% { opacity: 0; transform: translateY(-6px); }
+}
 
 .splash-tag {
-  font-size: 13px;
+  margin-top: 10px;
+  font-size: 11px;
   color: var(--text3);
   font-weight: 400;
   text-align: center;
   line-height: 1.6;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -188,7 +237,7 @@ html, body {
   font-family: 'DM Sans', sans-serif;
 }
 
-.progress-wrap { margin-bottom: 36px; }
+.progress-wrap { margin-bottom: 20px; }
 .progress-track {
   height: 3px;
   background: var(--border);
@@ -225,7 +274,7 @@ html, body {
   color: var(--text);
   line-height: 1.25;
   letter-spacing: -0.01em;
-  margin-bottom: 32px;
+  margin-bottom: 20px;
 }
 
 .options-list {
@@ -311,6 +360,47 @@ html, body {
   justify-content: center;
   background: var(--bg);
   gap: 20px;
+}
+
+/* ── Moodi, el avatar que acompaña ── */
+.moodi-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 18px;
+  min-height: 78px;
+}
+.moodi { width: 74px; height: 74px; flex-shrink: 0; overflow: visible; }
+.moodi * { transform-box: fill-box; }
+.moodi-bubble {
+  background: #1C1C29;
+  border: 1px solid var(--border2);
+  border-radius: 16px 16px 16px 4px;
+  padding: 10px 13px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+  margin-bottom: 22px;
+  animation: bubbleIn 0.3s ease;
+}
+@keyframes bubbleIn { from { opacity: 0; transform: translateY(4px) scale(0.97); } to { opacity: 1; transform: none; } }
+.m-blink { transform-origin: center; animation: mBlink 4.5s infinite; }
+@keyframes mBlink { 0%,93%,100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+.m-bob { transform-origin: bottom center; animation: mBob 2.6s ease-in-out infinite; }
+@keyframes mBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.m-jump { transform-origin: bottom center; animation: mJump 0.9s ease-in-out infinite; }
+@keyframes mJump { 0%,100% { transform: translateY(0) scaleY(1); } 20% { transform: translateY(0) scaleY(0.9); } 55% { transform: translateY(-10px) scaleY(1.05); } }
+.m-shake { transform-origin: center; animation: mShake 0.35s linear infinite; }
+@keyframes mShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+.m-tear { animation: mTear 2.2s ease-in infinite; }
+@keyframes mTear { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(14px); opacity: 0; } }
+
+.loading-moodi { width: 110px; height: 110px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-glow, .logo-pupil, .logo-lid, .moodi *, .moodi-bubble { animation: none !important; }
+  .splash-feel span { animation: none; }
+  .splash-feel span:first-child { opacity: 1; }
 }
 
 .loading-orb {
@@ -667,56 +757,24 @@ html, body {
   <div id="screen-splash" class="screen active">
     <div class="splash-glow"></div>
     <div class="splash-center">
-      <!-- Logo SVG — cara + claqueta estilo logo 2 -->
-      <svg class="splash-icon" viewBox="0 0 130 130" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="g1" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#38BDF8"/>
-            <stop offset="35%" stop-color="#A855F7"/>
-            <stop offset="65%" stop-color="#FF3D8B"/>
-            <stop offset="100%" stop-color="#FFB830"/>
-          </linearGradient>
-          <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#C026D3"/>
-            <stop offset="50%" stop-color="#FF3D8B"/>
-            <stop offset="100%" stop-color="#FFB830"/>
-          </linearGradient>
-          <linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#7C3AED"/>
-            <stop offset="50%" stop-color="#FF3D8B"/>
-            <stop offset="100%" stop-color="#FFB830"/>
-          </linearGradient>
-        </defs>
-        <!-- Burbuja / cara base -->
-        <path d="M20 30 Q20 14 36 14 L94 14 Q110 14 110 30 L110 82 Q110 98 94 98 L72 98 L65 114 L58 98 L36 98 Q20 98 20 82 Z" fill="url(#g1)" opacity="0.95"/>
-        <!-- Brillo interno -->
-        <path d="M28 30 Q28 22 36 22 L94 22 Q102 22 102 30 L102 55 Q70 72 28 52 Z" fill="white" opacity="0.07"/>
-        <!-- Claqueta — cuerpo -->
-        <rect x="34" y="8" width="62" height="20" rx="5" fill="url(#g2)" opacity="0.95"/>
-        <!-- Claqueta — rayas -->
-        <rect x="34" y="8" width="9" height="20" rx="0" fill="white" opacity="0.25"/>
-        <rect x="52" y="8" width="9" height="20" fill="white" opacity="0.25"/>
-        <rect x="70" y="8" width="9" height="20" fill="white" opacity="0.25"/>
-        <rect x="88" y="8" width="8" height="20" rx="0" fill="white" opacity="0.25"/>
-        <!-- Claqueta — bisagra top -->
-        <rect x="28" y="6" width="74" height="7" rx="3" fill="url(#g3)" opacity="0.9"/>
-        <!-- Play button -->
-        <circle cx="65" cy="54" r="14" fill="black" opacity="0.25"/>
-        <polygon points="60,47 60,61 76,54" fill="white" opacity="0.9"/>
-        <!-- Ojo izquierdo -->
-        <circle cx="46" cy="74" r="4" fill="black" opacity="0.35"/>
-        <circle cx="46" cy="74" r="4" fill="white" opacity="0.7"/>
-        <circle cx="47.5" cy="72.5" r="1.5" fill="black" opacity="0.8"/>
-        <!-- Guiño derecho -->
-        <path d="M80 72 Q84 69 88 72" stroke="black" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.35"/>
-        <path d="M80 72 Q84 69 88 72" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.75"/>
-        <!-- Sonrisa -->
-        <path d="M50 84 Q65 94 80 84" stroke="black" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.3"/>
-        <path d="M50 84 Q65 94 80 84" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.8"/>
+      <!-- Logo: las O de MOOD son ojos -->
+      <div class="splash-logo" role="img" aria-label="MyMood">
+        <span class="my">MY</span><span class="m2">M</span><span class="logo-eye o1"><span class="logo-pupil"></span><span class="logo-lid"></span></span><span class="logo-eye o2"><span class="logo-pupil"></span><span class="logo-lid"></span></span><span class="d">D</span>
+      </div>
+      <!-- Boca que cambia de expresión -->
+      <svg class="splash-mouth" viewBox="0 0 120 34" fill="none" aria-hidden="true">
+        <defs><linearGradient id="mouthGrad" x1="0" x2="1"><stop offset="0" stop-color="#A855F7"/><stop offset=".5" stop-color="#FF3D8B"/><stop offset="1" stop-color="#FFB830"/></linearGradient></defs>
+        <path stroke="url(#mouthGrad)" stroke-width="5" stroke-linecap="round" d="M22 10 Q60 34 98 10">
+          <animate attributeName="d" dur="8s" repeatCount="indefinite"
+            values="M22 10 Q60 34 98 10; M22 10 Q60 34 98 10; M30 18 Q60 18 90 18; M30 18 Q60 18 90 18; M40 22 Q60 4 80 22; M40 22 Q60 4 80 22; M22 8 Q60 40 98 8; M22 8 Q60 40 98 8; M22 10 Q60 34 98 10"
+            keyTimes="0;0.2;0.25;0.45;0.5;0.7;0.75;0.95;1"/>
+        </path>
       </svg>
-
-      <div class="splash-logo">
-        <span class="my">MY</span><span class="m2">M</span><span class="o1">O</span><span class="o2">O</span><span class="d">D</span>
+      <div class="splash-feel" aria-hidden="true">
+        <span>Hoy estoy <b style="color:#C084FC">tranqui</b></span>
+        <span>Hoy estoy <b style="color:#38BDF8">pensativo</b></span>
+        <span>Hoy estoy <b style="color:#FF6B35">con miedo</b></span>
+        <span>Hoy estoy <b style="color:#FF3D8B">a mil</b></span>
       </div>
       <div class="splash-tag">Mirá lo que sentís</div>
     </div>
@@ -739,6 +797,10 @@ html, body {
         </div>
         <div class="progress-label" id="progress-label">1 de 5</div>
       </div>
+      <div class="moodi-row">
+        <svg class="moodi" id="moodi-quiz" viewBox="0 0 140 140" aria-hidden="true"></svg>
+        <div class="moodi-bubble" id="moodi-bubble"></div>
+      </div>
       <div class="q-num" id="q-num">Pregunta 1</div>
       <div class="q-text" id="q-text"></div>
       <div class="options-list" id="options-list"></div>
@@ -750,7 +812,7 @@ html, body {
 
   <!-- ── LOADING ── -->
   <div id="screen-loading" class="screen">
-    <div class="loading-orb"></div>
+    <svg class="moodi loading-moodi" id="moodi-loading" viewBox="0 0 140 140" aria-hidden="true"></svg>
     <div class="loading-text" id="loading-text">Analizando tu mood...</div>
     <div class="loading-sub">Buscando lo perfecto para hoy</div>
   </div>
@@ -841,6 +903,113 @@ const questions = [
   }
 ];
 
+// ── MOODI: avatar que acompaña las preguntas ───────────────────────────
+const MOODI_PALETTES = {
+  normal:    ['#A855F7', '#FF3D8B', '#FFB830'],
+  agotado:   ['#64748B', '#6366F1', '#94A3B8'],
+  energia:   ['#FF3D8B', '#FF6B35', '#FFB830'],
+  feliz:     ['#FF6B35', '#FFB830', '#FDE68A'],
+  emocion:   ['#C026D3', '#FF3D8B', '#F9A8D4'],
+  pensativo: ['#4F46E5', '#A855F7', '#38BDF8'],
+  miedo:     ['#CBD5E1', '#A5B4FC', '#E2E8F0'],
+};
+let moodiSeq = 0;
+
+function moodiEyes(x1, x2, y, r, st) {
+  if (st === 'energia' || st === 'feliz') {
+    const arc = x => `<path d="M${x-r} ${y+2} Q${x} ${y-r} ${x+r} ${y+2}" stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none"/>`;
+    return arc(x1) + arc(x2);
+  }
+  if (st === 'agotado') {
+    const one = x => `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff"/><circle cx="${x}" cy="${y+2}" r="${r*.45}" fill="#0C0C0F"/><path d="M${x-r-1} ${y-r-1} H${x+r+1} V${y+1} H${x-r-1} Z" fill="var(--lid)"/>`;
+    return one(x1) + one(x2);
+  }
+  if (st === 'miedo') {
+    const one = x => `<circle cx="${x}" cy="${y}" r="${r*1.25}" fill="#fff"/><circle cx="${x}" cy="${y}" r="${r*.3}" fill="#0C0C0F"/>`;
+    return one(x1) + one(x2);
+  }
+  // normal, emocion, pensativo (pensativo mira hacia arriba)
+  const dy = st === 'pensativo' ? -3 : 1, dx = st === 'pensativo' ? 2 : 1;
+  const one = x => `<g class="m-blink"><circle cx="${x}" cy="${y}" r="${r}" fill="#fff"/><circle cx="${x+dx}" cy="${y+dy}" r="${r*.5}" fill="#0C0C0F"/><circle cx="${x+dx+1.5}" cy="${y+dy-2.5}" r="${r*.18}" fill="#fff"/></g>`;
+  return one(x1) + one(x2);
+}
+
+function moodiMouth(cx, y, w, st) {
+  const c = '#0C0C0F';
+  if (st === 'energia' || st === 'feliz') return `<path d="M${cx-w} ${y-2} Q${cx} ${y+w*1.1} ${cx+w} ${y-2} Z" fill="${c}"/>`;
+  if (st === 'agotado') return `<path d="M${cx-w*.7} ${y+2} Q${cx} ${y} ${cx+w*.7} ${y+3}" stroke="${c}" stroke-width="2.5" stroke-linecap="round" fill="none"/>`;
+  if (st === 'miedo') return `<ellipse cx="${cx}" cy="${y+2}" rx="${w*.35}" ry="${w*.5}" fill="${c}"/>`;
+  if (st === 'pensativo') return `<path d="M${cx-w*.5} ${y+2} L${cx+w*.6} ${y}" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/>`;
+  if (st === 'emocion') return `<path d="M${cx-w*.7} ${y} Q${cx} ${y+w*.6} ${cx+w*.7} ${y}" stroke="${c}" stroke-width="2.5" stroke-linecap="round" fill="none"/>`;
+  return `<path d="M${cx-w} ${y} Q${cx} ${y+w*.9} ${cx+w} ${y}" stroke="${c}" stroke-width="3" stroke-linecap="round" fill="none"/>`;
+}
+
+function moodiSVG(st = 'normal') {
+  const id = 'mg' + (moodiSeq++);
+  const pal = MOODI_PALETTES[st] || MOODI_PALETTES.normal;
+  const shapes = st === 'agotado'
+    ? ['M20 118 Q18 80 50 74 Q70 66 92 74 Q124 82 120 118 Q70 128 20 118 Z', 'M22 118 Q16 84 52 76 Q72 70 90 76 Q126 84 118 118 Q70 126 22 118 Z']
+    : ['M70 18 Q112 20 118 66 Q124 112 72 122 Q22 126 18 76 Q16 26 70 18 Z',
+       'M72 16 Q116 26 120 70 Q118 116 68 122 Q20 120 20 72 Q24 22 72 16 Z',
+       'M68 20 Q110 16 120 64 Q126 114 74 120 Q18 128 16 74 Q18 30 68 20 Z'];
+  const ey = st === 'agotado' ? 96 : 66, my = st === 'agotado' ? 108 : 86;
+  const wrap = st === 'energia' ? 'm-jump' : st === 'miedo' ? 'm-shake' : st === 'agotado' ? '' : 'm-bob';
+  const extra = st === 'emocion' ? `<path class="m-tear" d="M50 78 q3 6 0 9 q-3 -3 0 -9z" fill="#7DD3FC"/>`
+              : st === 'miedo' ? `<path d="M108 40 q4 8 0 12 q-4 -4 0 -12z" fill="#7DD3FC"/>`
+              : st === 'pensativo' ? `<circle cx="112" cy="30" r="4" fill="#fff" opacity=".5"/><circle cx="122" cy="18" r="6" fill="#fff" opacity=".35"/>` : '';
+  return `
+    <defs><linearGradient id="${id}" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="${pal[0]}"/><stop offset=".55" stop-color="${pal[1]}"/><stop offset="1" stop-color="${pal[2]}"/>
+    </linearGradient></defs>
+    <g class="${wrap}" style="--lid:${pal[1]}">
+      <ellipse cx="70" cy="130" rx="40" ry="5" fill="#000" opacity=".35"/>
+      <path fill="url(#${id})" d="${shapes[0]}"><animate attributeName="d" dur="${st === 'energia' ? '1.6s' : '4s'}" repeatCount="indefinite" values="${[...shapes, shapes[0]].join(';')}"/></path>
+      <ellipse cx="48" cy="${ey-22}" rx="14" ry="8" fill="#fff" opacity=".18"/>
+      ${moodiEyes(55, 85, ey, 9, st)}
+      ${moodiMouth(70, my, 10, st)}
+      ${extra}
+    </g>`;
+}
+
+// Qué dice Moodi en cada pregunta y cómo reacciona a cada respuesta
+const MOODI_LINES = [
+  { intro: '¡Hola! Soy Moodi. Contame, ¿cómo llegás a este momento del día?',
+    agotado:    ['agotado',   'Día largo, ¿no? Tranqui, nada que te exija de más.'],
+    tranquilo:  ['normal',    'Qué lindo llegar en paz. Aprovechemos.'],
+    acelerado:  ['energia',   '¡Se te nota la energía! Vamos con todo.'],
+    nostalgico: ['pensativo', 'Hay días así, con la cabeza dando vueltas. Te acompaño.'] },
+  { intro: '¿Y qué te gustaría que te deje la pantalla?',
+    reir:        ['feliz',   '¡Reírse siempre suma! Anotado.'],
+    emocion:     ['emocion', 'Uf, de las que tocan el corazón. Me encanta.'],
+    adrenalina:  ['energia', '¡Agarrate fuerte entonces!'],
+    desconectar: ['agotado', 'Modo apagar el cerebro: activado.'] },
+  { intro: '¿Cuánto te querés concentrar en la trama?',
+    cero:   ['normal',    'Nada de vueltas: que entre solo.'],
+    algo:   ['normal',    'Que enganche sin pedirte demasiado. Perfecto.'],
+    full:   ['pensativo', '¡Te gustan los desafíos! Te voy a volar la cabeza.'],
+    visual: ['feliz',     'Para disfrutar con los ojos. Buena elección.'] },
+  { intro: '¿A qué mundo te querés escapar hoy?',
+    real:       ['normal',    'Historias que te podrían pasar a vos.'],
+    fantasia:   ['feliz',     '¡A otro universo! Me pongo de colores.'],
+    terror:     ['miedo',     'Eh… ¿terror? Bueno, yo miro con un ojo nomás.'],
+    documental: ['pensativo', 'Para aprender algo nuevo. ¡Buenísimo!'] },
+  { intro: 'Última: ¿con quién lo vas a ver?',
+    solo:    ['normal',  'Tu momento, sin filtros. Me encanta.'],
+    pareja:  ['emocion', 'Plan de a dos. Busco algo para compartir.'],
+    amigos:  ['energia', '¡Juntada! Algo que les guste a todos.'],
+    familia: ['feliz',   'Para toda la familia: apto para todas las edades.'] },
+];
+
+function updateMoodi() {
+  const lines = MOODI_LINES[currentQ];
+  const ans = answers[currentQ];
+  const [state, text] = ans && lines[ans] ? lines[ans] : ['normal', lines.intro];
+  document.getElementById('moodi-quiz').innerHTML = moodiSVG(state);
+  const bubble = document.getElementById('moodi-bubble');
+  bubble.textContent = text;
+  bubble.style.animation = 'none'; void bubble.offsetWidth; bubble.style.animation = '';
+}
+
 let currentQ = 0;
 const answers = {};
 let allRecs = [];
@@ -878,6 +1047,7 @@ function renderQuestion() {
   const nextBtn = document.getElementById('btn-next');
   nextBtn.textContent = isLast ? 'Ver mi mood ✦' : 'Siguiente →';
   nextBtn.disabled = answers[currentQ] === undefined;
+  updateMoodi();
 }
 
 function selectOpt(qIdx, value, el) {
@@ -889,6 +1059,7 @@ function selectOpt(qIdx, value, el) {
   el.classList.add('selected');
   el.querySelector('.opt-check').textContent = '✓';
   document.getElementById('btn-next').disabled = false;
+  updateMoodi();
 }
 
 function nextQ() {
@@ -909,8 +1080,13 @@ function prevQ() {
   }
 }
 
-async function startAnalysis() {
+function showLoading() {
+  document.getElementById('moodi-loading').innerHTML = moodiSVG('pensativo');
   goTo('loading');
+}
+
+async function startAnalysis() {
+  showLoading();
   const msgs = ['Analizando tu mood...', 'Buscando lo perfecto...', 'Casi listo...'];
   let mi = 0;
   const interval = setInterval(() => {
@@ -1297,7 +1473,7 @@ async function setYearFilter(filter, el) {
   el.classList.add('active');
 
   // Re-consultar a Claude con el nuevo filtro de época
-  goTo('loading');
+  showLoading();
   try {
     await fetchRecommendations(false);
   } catch(e) {
@@ -1310,7 +1486,7 @@ async function setYearFilter(filter, el) {
 }
 
 async function regenerate() {
-  goTo('loading');
+  showLoading();
   try {
     await fetchRecommendations(true);
   } catch(e) {
