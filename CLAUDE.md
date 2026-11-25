@@ -23,7 +23,8 @@ App que recomienda películas y series según el estado de ánimo del día. El u
 ├── index.html      App completa (HTML + CSS + JS en un solo archivo)
 ├── api/claude.js   Proxy serverless (Node) hacia la API de Anthropic
 ├── api/tmdb.js     Proxy serverless (Node) hacia TMDb (agrega TMDB_API_KEY)
-├── vercel.json     Config de Vercel (builds + routes explícitos)
+├── icons/          Ícono de la app (icon.svg + PNG 32/180/512), con los ojos del logo
+├── vercel.json     Config de Vercel (builds + routes explícitos; icons/ tiene su propia ruta)
 └── README.md
 ```
 
@@ -67,7 +68,7 @@ App que recomienda películas y series según el estado de ánimo del día. El u
 - "Familia" ya no pisa el mood: es un modificador que pide contenido apto para todos. "Para todos en casa" dejó de existir.
 - Cuando la combinación se contradice (ej. agotado + desconectar + full), manda la energía.
 - 18 moods: Reírme sin pensar, Buena onda nomás, Humor con ingenio, Sacudirme el bajón, Llorar sin culpa, Sentir algo lindo, Procesar en silencio, Bajar al fondo, Contemplar y flotar, Que me explote la cabeza, Despertame de a poco, Quiero acción ya, Modo fuga total, Épico y emocionante, Modo automático, Noche tranquila en casa, Activo pero sin drama, Modo miedo en soledad.
-- Distribución sobre las 1.024 combinaciones: ninguno supera el 12% (antes "Noche tranquila" ~33% y "Para todos" ~25%). El respaldo ("Noche tranquila") solo aparece si faltan respuestas (botón "Saltar").
+- Distribución sobre las 1.024 combinaciones: ninguno supera el 12% (antes "Noche tranquila" ~33% y "Para todos" ~25%). Con "Saltar", Moodi elige una opción neutra (`SKIP_DEFAULTS`: tranquilo, reír, algo, mundo real, solo) y lo avisa, así que el mood nunca sale del respaldo.
 - Claude recibe el mood ya detectado, no las respuestas crudas. Se le pide diversidad dentro del mood (para que al menos una opción pegue). En regeneración se le pasan los títulos previos para no repetir.
 - Cada mood pasa a Claude universo, compañía, esfuerzo y su `contenido` propio.
 - Filtro de época: chips Todas / Últimos 5 años / 2010-2019 / Clásicos. Cambiar el chip re-consulta a Claude con la restricción de años dentro del prompt (`buildYearInstructions()`).
@@ -80,7 +81,10 @@ Ordenados por prioridad:
 2. ~~Mapa de moods incompleto~~ ✅ Resuelto el 17/11/2026: mapa completo de 64 combinaciones, familia como modificador.
 3. ~~Proxy abierto~~ ✅ Resuelto: `api/claude.js` fija modelo y `max_tokens`, solo acepta pedidos desde la app (my-mood-chi.vercel.app y previews), valida largo del prompt (6.000 caracteres) y limita a 30 consultas/hora por IP (en memoria, se reinicia con la función).
 4. ~~Atribución a TMDb~~ ✅ Resuelto: está en el pie de los resultados.
-5. **UX:** "Ver ahora" abre la ficha de TMDb, no la plataforma (ya no se rompe con títulos con apóstrofe). "Reintentar" ya repite la consulta sin borrar las respuestas. "Ya tengo cuenta" no hace nada. "Saltar" deja avanzar sin responder y el mood sale del fallback.
+5. **UX:** "Ya tengo cuenta" no hace nada (se resuelve con el perfil). Resuelto el 25/11/2026:
+   - "Ver ahora" dice "Ver en [plataforma]". Netflix, Prime Video, Apple TV, YouTube y Crunchyroll abren la búsqueda del título en la plataforma; el resto (Disney+, Max, Paramount+, etc.) abre la página de TMDb "dónde ver" en Argentina, que tiene links directos. TMDb no da links directos al título. Las etiquetas de plataforma también son links.
+   - "Saltar" ya no deja respuestas vacías: Moodi elige por vos.
+   - "Reintentar" repite la consulta sin borrar las respuestas.
 6. **Créditos de Anthropic.** La API es de pago, independiente de la suscripción a Claude.ai. Si el error dice "credit balance is too low", hay que cargar saldo en console.anthropic.com (USD 5 alcanzan para miles de consultas con Haiku).
 
 ## Licencia de TMDb
@@ -127,7 +131,8 @@ Ordenados por prioridad:
 2. Variables de entorno requeridas en Vercel: `ANTHROPIC_API_KEY` y `TMDB_API_KEY`.
 3. Probar SIEMPRE desde https://my-mood-chi.vercel.app, no abriendo `index.html` como archivo local (ahí `/api/claude` no existe y da 404).
 4. Si se cambia el dominio de la app, actualizar `ALLOWED_ORIGINS` en `api/claude.js` (si no, el proxy responde 403).
-5. Si el proxy devuelve 404: verificar que `api/claude.js` esté dentro de la carpeta `api` y que `vercel.json` no esté roto.
+5. Archivos nuevos que no sean `index.html` (imágenes, íconos) necesitan su entrada en `builds` y `routes` de `vercel.json`; si no, Vercel devuelve `index.html` en su lugar.
+6. Si el proxy devuelve 404: verificar que `api/claude.js` esté dentro de la carpeta `api` y que `vercel.json` no esté roto.
 
 ## Identidad visual
 

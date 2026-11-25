@@ -1,13 +1,39 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/claude.js", "use": "@vercel/node" },
-    { "src": "api/tmdb.js", "use": "@vercel/node" },
-    { "src": "index.html", "use": "@vercel/static" }
+    {
+      "src": "api/claude.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/tmdb.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "icons/*",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    }
   ],
   "routes": [
-    { "src": "/api/claude", "dest": "/api/claude.js" },
-    { "src": "/api/tmdb", "dest": "/api/tmdb.js" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    {
+      "src": "/api/claude",
+      "dest": "/api/claude.js"
+    },
+    {
+      "src": "/api/tmdb",
+      "dest": "/api/tmdb.js"
+    },
+    {
+      "src": "/icons/(.*)",
+      "dest": "/icons/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }
